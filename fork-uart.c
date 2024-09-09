@@ -109,7 +109,8 @@ void child_process(int fd)
     while (1) {
         fgets(input_buffer, sizeof(input_buffer), stdin);
         write(fd, input_buffer, strlen(input_buffer));
-        if (input_buffer[0] == 'q') {
+        if (input_buffer[0] == 'q') 
+		{
             break; // Exit if 'q' is detected
         }
     }

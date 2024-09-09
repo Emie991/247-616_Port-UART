@@ -20,7 +20,8 @@
 #include <errno.h>   // ERROR Number Definitions
 
 // device port série à utiliser 
-const char *portTTY = "/dev/ttyGS0"; 
+const char *portTTY = "/dev/ttyS1";
+//const char *portTTY = "/dev/ttyGS0"; 
 //const char *portTTY = "/dev/ttyUSB0"; // ttyUSB0 is the FT232 based USB2SERIAL Converter
 
 void main(void)
@@ -58,7 +59,7 @@ void main(void)
 
 	// SerialPortSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // Non Cannonical mode, Disable echo, Disable signal  
 	SerialPortSettings.c_lflag &= ~(ECHO | ECHOE | ISIG);  //Disable echo, Disable signal  
-    SerialPortSettings.c_lflag |= ICANON;  // Non-Cannonical mode 
+    SerialPortSettings.c_lflag &= ~ICANON;  // Non-Cannonical mode 
 
 	SerialPortSettings.c_oflag &= ~OPOST;	//No Output Processing
 

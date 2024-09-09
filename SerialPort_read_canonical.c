@@ -20,7 +20,8 @@
 #include <errno.h>   // ERROR Number Definitions
 
 // device port série à utiliser 
-const char *portTTY = "/dev/ttyGS0"; 
+//const char *portTTY = "/dev/ttyGS0"; 
+const char *portTTY = "/dev/ttyS1";
 //const char *portTTY = "/dev/ttyUSB0"; // ttyUSB0 is the FT232 based USB2SERIAL Converter
 
 void main(void)
