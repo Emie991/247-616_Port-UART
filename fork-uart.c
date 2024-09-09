@@ -25,7 +25,8 @@
 #include <signal.h>      // For signal handling
 
 // device port série à utiliser 
-const char *portTTY = "/dev/ttyGS0"; 
+const char *portTTY = "/dev/ttyS1";
+//const char *portTTY = "/dev/ttyGS0"; 
 //const char *portTTY = "/dev/ttyUSB0"; // ttyUSB0 is the FT232 based USB2SERIAL Converter
 
 
@@ -79,14 +80,14 @@ int init_serial_port()
 
 void parent_process(int fd) 
 {
-    char read_buffer[32];   
+    char read_buffer[256];   
     int bytes_read;  
 
     printf("Je suis le processus Père, j'écrit sur la console (terminal) ce que j'entends sur le port série...\n");
     
     while (1) 
 	{
-        bytes_read = read(fd, &read_buffer, sizeof(read_buffer) - 1);
+        bytes_read = read(fd, read_buffer, sizeof(read_buffer) - 1);
         if (bytes_read > 0)
 		 {
             read_buffer[bytes_read] = '\0'; // Null-terminate the string
@@ -96,13 +97,13 @@ void parent_process(int fd)
                 break; // Exit if '!' is detected
             }
         }
-    }
+    } 
     printf("Fin du Père\n");
 }
 
 void child_process(int fd) 
 {
-    char input_buffer[32];
+    char input_buffer[256];
 
     printf("Je suis le processus Fils, j'écrit sur le port série ce que j'entends sur la console (terminal)...\n");
     
@@ -111,6 +112,7 @@ void child_process(int fd)
         write(fd, input_buffer, strlen(input_buffer));
         if (input_buffer[0] == 'q') 
 		{
+            
             break; // Exit if 'q' is detected
         }
     }
