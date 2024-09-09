@@ -32,18 +32,12 @@ const char *portTTY = "/dev/ttyS1";
 
 int init_serial_port()
 {
- 
-	printf("\n Lecture Port Serie");
-
 	// Opening the Serial Port 
 	int fd = open(portTTY, O_RDWR | O_NOCTTY);  
 	if(fd == -1) // Error Checking
 	{
-	printf("\n Erreur! ouverture de %s ", portTTY);
 	return -1;
 	}
-
-	printf("\n Ouverture de %s reussit ", portTTY);
 	
 	// Setting the Attributes of the serial port using termios structure 
 	struct termios SerialPortSettings;	// Create the structure 
@@ -65,7 +59,7 @@ int init_serial_port()
 	SerialPortSettings.c_oflag &= ~OPOST;	// No Output Processing
 
 	// Setting Time outs 
-	SerialPortSettings.c_cc[VMIN] = 1; // Read at least 1 character(s) 
+	SerialPortSettings.c_cc[VMIN] = 2; // Read at least 2 character(s) 
 	SerialPortSettings.c_cc[VTIME] = 0; // Wait 3sec (0 for indefinetly) 
 
 	if(tcsetattr(fd, TCSANOW, &SerialPortSettings)!= 0) // Set the attributes to the termios structure
