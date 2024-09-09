@@ -1,85 +1,119 @@
-/**
- * @file    SerialPort_read.c
- * 
- * @brief Serial Port Programming in C (Serial Port Read)  
- * Non Cannonical mode   
- * Sellecting the Serial port Number on Linux   
- * /dev/ttyUSBx - when using USB to Serial Converter, where x can be 0,1,2...etc 
- * /dev/ttySx   - for PC hardware based Serial ports, where x can be 0,1,2...etc  
- * termios structure -  /usr/include/asm-generic/termbits.h  
- * use "man termios" to get more info about  termios structure
- * @author  Kevin Cotton
- * @date    2024-08-02
- */	
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <fcntl.h>   // File Control Definitions
-#include <termios.h> // POSIX Terminal Control Definitions 
-#include <unistd.h>  // UNIX Standard Definitions 
+#include <termios.h> // POSIX Terminal Control Definitions
+#include <unistd.h>  // UNIX Standard Definitions
 #include <errno.h>   // ERROR Number Definitions
+#include <sys/types.h> // For pid_t
+#include <sys/wait.h> // For wait()
+#include <stdlib.h>   // For exit()
 
-// device port série à utiliser 
-const char *portTTY = "/dev/ttyGS0"; 
-//const char *portTTY = "/dev/ttyUSB0"; // ttyUSB0 is the FT232 based USB2SERIAL Converter
+// Device port série à utiliser 
+const char *portTTY = "/dev/ttyS1"; // Change as necessary
 
-void main(void)
-	{
-	int fd; // File Descriptor
-	
-	printf("\n Lecture Port Serie");
+void configure_serial(int fd) {
+    struct termios SerialPortSettings; // Create the structure 
+    tcgetattr(fd, &SerialPortSettings); // Get the current attributes of the Serial port
 
-	// Opening the Serial Port 
-	fd = open(portTTY, O_RDWR | O_NOCTTY);  
-							// O_RDWR   - Read/Write access to serial port 
-							// O_NOCTTY - No terminal will control the process
-							// Open in blocking mode,read will wait 
-	if(fd == -1) // Error Checking
-		printf("\n Erreur! ouverture de %s ", portTTY);
-	else
-		printf("\n Ouverture de %s reussit ", portTTY);
+    // Setting the Baud rate
+    cfsetispeed(&SerialPortSettings, B115200); // Set Read Speed   
+    cfsetospeed(&SerialPortSettings, B115200); // Set Write Speed  
 
-	// Setting the Attributes of the serial port using termios structure 
-	struct termios SerialPortSettings;	// Create the structure 
-	tcgetattr(fd, &SerialPortSettings);	// Get the current attributes of the Serial port 
-	// Setting the Baud rate
-	cfsetispeed(&SerialPortSettings, B115200); // Set Read Speed  
-	cfsetospeed(&SerialPortSettings, B115200); // Set Write Speed  
-	// 8N1 Mode 
-	SerialPortSettings.c_cflag &= ~PARENB;   // Disables the Parity Enable bit(PARENB),So No Parity 
-	SerialPortSettings.c_cflag &= ~CSTOPB;   // CSTOPB = 2 Stop bits,here it is cleared so 1 Stop bit
-	SerialPortSettings.c_cflag &= ~CSIZE;	 // Clears the mask for setting the data size 
-	SerialPortSettings.c_cflag |=  CS8;      // Set the data bits = 8  
-	SerialPortSettings.c_cflag &= ~CRTSCTS;       // No Hardware flow Control
-	SerialPortSettings.c_cflag |= CREAD | CLOCAL; // Enable receiver, Ignore Modem Control lines
-	
-	SerialPortSettings.c_iflag &= ~(IXON | IXOFF | IXANY);          // Disable XON/XOFF flow control both i/p and o/p
+    // 8N1 Mode 
+    SerialPortSettings.c_cflag &= ~PARENB; // No Parity
+    SerialPortSettings.c_cflag &= ~CSTOPB; // 1 Stop bit
+    SerialPortSettings.c_cflag &= ~CSIZE;  // Clears the mask for setting the data size
+    SerialPortSettings.c_cflag |= CS8;      // Set the data bits = 8
+    SerialPortSettings.c_cflag &= ~CRTSCTS; // No Hardware flow Control
+    SerialPortSettings.c_cflag |= CREAD | CLOCAL; // Enable receiver, Ignore Modem Control lines
 
-	SerialPortSettings.c_lflag &= ~(ECHO | ECHOE | ISIG);  //Disable echo, Disable signal  
-    SerialPortSettings.c_lflag |= ICANON;  // Non-Cannonical mode 
-	SerialPortSettings.c_oflag &= ~OPOST;	// No Output Processing
+    SerialPortSettings.c_iflag &= ~(IXON | IXOFF | IXANY); // Disable XON/XOFF flow control
 
-	// Setting Time outs 
-	SerialPortSettings.c_cc[VMIN] = 0; // Read at least 1 character(s) 
-	SerialPortSettings.c_cc[VTIME] = 100; // Wait 3sec (0 for indefinetly) 
+    SerialPortSettings.c_lflag &= ~(ECHO | ECHOE | ISIG); // Disable echo, Disable signal  
+    SerialPortSettings.c_lflag &= ~ICANON; // Non-Cannonical mode 
+    SerialPortSettings.c_oflag &= ~OPOST; // No Output Processing
 
-	if((tcsetattr(fd, TCSANOW, &SerialPortSettings)) != 0) // Set the attributes to the termios structure
-		printf("\n  Erreur! configuration des attributs du port serie");
-	
-	// Read data from serial port 
-	tcflush(fd, TCIFLUSH);  // Discards old data in the rx buffer
-	char read_buffer[32];   // Buffer to store the data received 
-	int  bytes_read = 0;    // Number of bytes read by the read() system call 
-	int i = 0;
+    SerialPortSettings.c_cc[VMIN] = 0; // Read at least 0 character(s) 
+    SerialPortSettings.c_cc[VTIME] = 100; // Wait 10 sec (0 for indefinitely) 
 
-	bytes_read = read(fd, &read_buffer, 32); // Read the data 
-		
-	printf(" Bytes Recus : %d --> ", bytes_read); // Print the number of bytes read
-	for(i=0; i<bytes_read; i++)	 // printing only the received characters
-		printf("%c", read_buffer[i]);
+    // Set the attributes to the termios structure
+    if (tcsetattr(fd, TCSANOW, &SerialPortSettings) != 0) {
+        perror("Erreur! configuration des attributs du port serie");
+        exit(EXIT_FAILURE);
+    }
+}
 
-	printf("\n");
+void write_to_serial(int fd) {
+    char write_buffer[] = "ABCDE12345"; // Buffer containing characters to write into port
+    int bytes_written = write(fd, write_buffer, sizeof(write_buffer)); // Write data to serial port 
 
-	close(fd); // Close the serial port
+    printf("\nEcriture de %d octets : %s ecrit sur le port %s\n", bytes_written, write_buffer, portTTY);
+    close(fd); // Close the Serial port
+}
 
-	}
+void read_from_serial(int fd) {
+    char read_buffer[32];   // Buffer to store the data received 
+    int bytes_read = read(fd, &read_buffer, sizeof(read_buffer)); // Read the data 
+
+    printf("Bytes Recus : %d", bytes_read); // Print the number of bytes read
+    close(fd); // Close the serial port
+}
+
+int main(void) {
+    int fd_portUART;
+
+    // Open the Serial Port
+    fd_portUART = open(portTTY, O_RDWR | O_NOCTTY | O_NDELAY);
+    if (fd_portUART == -1) {
+        perror("Erreur! ouverture de port");
+        return EXIT_FAILURE;
+    }
+    
+    configure_serial(fd_portUART);
+
+    pid_t pid_write = fork();
+    if (pid_write < 0) {
+        perror("Fork for writing failed");
+        return EXIT_FAILURE;
+    }
+
+    if (pid_write == 0) {
+        // Child process for writing
+        write_to_serial(fd_portUART);
+        exit(EXIT_SUCCESS);
+    }
+
+    pid_t pid_read = fork();
+    if (pid_read < 0) {
+        perror("Fork for reading failed");
+        return EXIT_FAILURE;
+    }
+
+    if (pid_read == 0) {
+        // Child process for reading
+        fd_portUART = open(portTTY, O_RDWR | O_NOCTTY | O_NDELAY);
+        if (fd_portUART == -1) {
+            perror("Erreur! ouverture de port pour lecture");
+            exit(EXIT_FAILURE);
+        }
+        configure_serial(fd_portUART);
+        read_from_serial(fd_portUART);
+        exit(EXIT_SUCCESS);
+    }
+
+    // Main process
+    int n = 1; 
+    while (n < 10) {
+        printf("1 faire quelques trucs...\n");
+        n++;
+        sleep(3);
+    }
+
+    // Wait for both child processes to finish
+    wait(NULL); // attendre la fin de l'enfant 1
+    wait(NULL); // attendre la fin de l'enfant 2
+
+    close(fd_portUART); // Fermer le port série 
+    printf("Fin du processus Principal\n");
+
+    return EXIT_SUCCESS;
+}

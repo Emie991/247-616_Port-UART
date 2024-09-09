@@ -59,7 +59,7 @@ int init_serial_port()
 	SerialPortSettings.c_oflag &= ~OPOST;	// No Output Processing
 
 	// Setting Time outs 
-	SerialPortSettings.c_cc[VMIN] = 2; // Read at least 2 character(s) 
+	SerialPortSettings.c_cc[VMIN] = 2; // Read at least 1 character(s) 
 	SerialPortSettings.c_cc[VTIME] = 0; // Wait 3sec (0 for indefinetly) 
 
 	if(tcsetattr(fd, TCSANOW, &SerialPortSettings)!= 0) // Set the attributes to the termios structure
