@@ -8,8 +8,8 @@
  * /dev/ttySx   - for PC hardware based Serial ports, where x can be 0,1,2...etc  
  * termios structure -  /usr/include/asm-generic/termbits.h  
  * use "man termios" to get more info about  termios structure
- * @author  Kevin Cotton
- * @date    2024-08-02
+ * @author  Chat GPT
+ * @date    2024-10-07
  */	
 #define _GNU_SOURCE
 
