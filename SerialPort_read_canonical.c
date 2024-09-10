@@ -55,17 +55,17 @@ void main(void)
 	
 	SerialPortSettings.c_iflag &= ~(IXON | IXOFF | IXANY);          // Disable XON/XOFF flow control both i/p and o/p
 
-	SerialPortSettings.c_lflag &= ~(ICANON | ECHO| ECHOE | ISIG);  // Non Cannonical mode, Disable echo, Disable signal  
-
+	SerialPortSettings.c_lflag &= ~(ECHO | ECHOE | ISIG);  //Disable echo, Disable signal  
+    SerialPortSettings.c_lflag |= ICANON;  // Non-Cannonical mode 
 	SerialPortSettings.c_oflag &= ~OPOST;	// No Output Processing
 
 	// Setting Time outs 
-	SerialPortSettings.c_cc[VMIN] = 0; // Read at least X character(s) 
+	SerialPortSettings.c_cc[VMIN] = 0; // Read at least 1 character(s) 
 	SerialPortSettings.c_cc[VTIME] = 100; // Wait 3sec (0 for indefinetly) 
 
 	if((tcsetattr(fd, TCSANOW, &SerialPortSettings)) != 0) // Set the attributes to the termios structure
 		printf("\n  Erreur! configuration des attributs du port serie");
-		
+	
 	// Read data from serial port 
 	tcflush(fd, TCIFLUSH);  // Discards old data in the rx buffer
 	char read_buffer[32];   // Buffer to store the data received 
